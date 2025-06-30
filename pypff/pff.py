@@ -212,19 +212,23 @@ def get_game(url, key, game_id):
         # Unpack stadium column to retrieve pitch dimensions
         df[['stadiumId','stadiumName','pitches']] = df['stadium'].apply(pd.Series)
         df['date'] = pd.to_datetime(df['date'])
-        df_pitches = df['pitches'].apply(pd.Series).T[0].apply(pd.Series)
-        df_pitches['startDate'] = pd.to_datetime(df_pitches['startDate'])
-        df_pitches['endDate'] = pd.to_datetime(df_pitches['endDate'], errors='coerce')  # Convert empty strings to NaT
-        
-        # One-liner to find the pitchLength
-        df['pitchLength'] = df['date'].apply(lambda d: df_pitches.loc[
-            (df_pitches['startDate'] <= d) & ((df_pitches['endDate'].isna()) | (df_pitches['endDate'] >= d)), 'length'
-        ].values[0])
-        
-        # One-liner to find the pitchWidth
-        df['pitchWidth'] = df['date'].apply(lambda d: df_pitches.loc[
-            (df_pitches['startDate'] <= d) & ((df_pitches['endDate'].isna()) | (df_pitches['endDate'] >= d)), 'width'
-        ].values[0])
+        if df['pitches'].iloc[0]:  # if list is not empty
+            df_pitches = df['pitches'].apply(pd.Series).T[0].apply(pd.Series)
+            df_pitches['startDate'] = pd.to_datetime(df_pitches['startDate'])
+            df_pitches['endDate'] = pd.to_datetime(df_pitches['endDate'], errors='coerce')  # Convert empty strings to NaT
+            
+            # One-liner to find the pitchLength
+            df['pitchLength'] = df['date'].apply(lambda d: df_pitches.loc[
+                (df_pitches['startDate'] <= d) & ((df_pitches['endDate'].isna()) | (df_pitches['endDate'] >= d)), 'length'
+            ].values[0])
+            
+            # One-liner to find the pitchWidth
+            df['pitchWidth'] = df['date'].apply(lambda d: df_pitches.loc[
+                (df_pitches['startDate'] <= d) & ((df_pitches['endDate'].isna()) | (df_pitches['endDate'] >= d)), 'width'
+            ].values[0])
+        else:
+            df['pitchLength'] = None
+            df['pitchWidth'] = None
         
         df['stadium'] = df.apply(lambda row: {col: row[col] for col in ['stadiumId','stadiumName','pitchLength','pitchWidth']}, axis=1)
         df = df.drop(columns = ['stadiumId','stadiumName','pitches','pitchLength','pitchWidth'])
